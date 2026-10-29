@@ -3,26 +3,21 @@ venv/
 mpl_env/
 .venv/
 
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
 
 # Jupyter
 .ipynb_checkpoints/
 
-# Local datasets
-Data_set.zip
-inputs/
-
-# Generated notebook outputs
-jupyter_notebooks/outputs/
-
-# Secrets
+# Credentials
 .env
 .env.*
 env.py
 kaggle.json
 
-# IDE
-.vscode/
-.idea/
+# Local data archives
+Data_set.zip
+
+# Temporary notebook outputs
+jupyter_notebooks/outputs/

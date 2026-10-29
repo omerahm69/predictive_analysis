@@ -1,0 +1,43 @@
+ .gitignore                                         |    34 [32m+[m[31m-[m
+ README.md                                          |   525 [32m+[m[31m-[m
+ app.py                                             |    54 [32m+[m[31m-[m
+ app_pages/multipage.py                             |    40 [32m+[m[31m-[m
+ app_pages/page_churned_customer_study.py           |   123 [31m-[m
+ app_pages/page_cluster.py                          |   334 [32m+[m[31m-[m
+ app_pages/page_predict_Death_event.py              |   129 [32m+[m
+ app_pages/page_predict_churn.py                    |    60 [31m-[m
+ app_pages/page_predict_tenure.py                   |    57 [31m-[m
+ app_pages/page_project_hypothesis.py               |     9 [32m+[m[31m-[m
+ app_pages/page_prospect.py                         |   155 [31m-[m
+ app_pages/page_summary.py                          |    73 [32m+[m[31m-[m
+ jupyter_notebooks/01 - DataCollection.ipynb        |  2109 [32m+[m[31m-[m
+ .../02 - Churned Customer Study.ipynb              |   623 [31m-[m
+ jupyter_notebooks/03 - DataCleaning.ipynb          |  1316 [32m+[m[31m-[m
+ jupyter_notebooks/04 - FeatureEngineering.ipynb    |  8659 [32m++++++[m[31m-[m
+ ...- Modeling and Evaluation - Predict Churn.ipynb |  1601 [31m--[m
+ ...ling and Evaluation - Predict Death_event.ipynb | 12162 [32m+++++++++[m
+ ... Modeling and Evaluation - Predict Tenure.ipynb |  2296 [31m--[m
+ ...Modeling and Evaluation - Cluster Sklearn.ipynb | 24775 [32m++++++++++++++++++[m[31m-[m
+ jupyter_notebooks/Data_cleaning_Extraction.ipynb   |  3587 [32m+++[m
+ outputs/datasets/collection/HeartFailureData.csv   |   300 [32m+[m
+ outputs/datasets/split/TestSet.csv                 |    61 [32m+[m
+ outputs/datasets/split/TrainSet.csv                |   240 [32m+[m
+ .../cluster_analysis/v1/cluster_pipeline.pkl       |   Bin [31m0[m -> [32m3753[m bytes
+ .../cluster_analysis/v1/clusters_profile.csv       |     7 [32m+[m
+ .../ml_pipeline/predict_death_event/v1/X_test.csv  |    61 [32m+[m
+ .../ml_pipeline/predict_death_event/v1/X_train.csv |   240 [32m+[m
+ .../v1/clf_pipeline_data_cleaning_feat_eng.pkl     |   Bin [31m0[m -> [32m2632[m bytes
+ .../predict_death_event/v1/clf_pipeline_model.pkl  |   Bin [31m0[m -> [32m1375[m bytes
+ .../predict_death_event/v1/features_importance.png |   Bin [31m0[m -> [32m134441[m bytes
+ .../ml_pipeline/predict_death_event/v1/y_test.csv  |    61 [32m+[m
+ .../ml_pipeline/predict_death_event/v1/y_train.csv |   240 [32m+[m
+ .../models/clf_pipeline_data_cleaning_feat_eng.pkl |   Bin [31m0[m -> [32m356[m bytes
+ outputs/models/clf_pipeline_model.pkl              |   Bin [31m0[m -> [32m125041[m bytes
+ outputs/models/features_importance.png             |   Bin [31m0[m -> [32m25250[m bytes
+ outputs/reports/correlation_analysis.csv           |    12 [32m+[m
+ outputs/reports/descriptive_statistics.csv         |    13 [32m+[m
+ outputs/reports/missing_values.csv                 |    13 [32m+[m
+ src/data_management.py                             |    48 [32m+[m[31m-[m
+ src/machine_learning/evaluate_clf.py               |   122 [32m+[m[31m-[m
+ src/machine_learning/predictive_analysis_ui.py     |   185 [32m+[m[31m-[m
+ 42 files changed, 54312 insertions(+), 6012 deletions(-)

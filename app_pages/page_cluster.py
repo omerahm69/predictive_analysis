@@ -1,115 +1,259 @@
+
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import plotly.express as px
-from src.data_management import load_telco_data, load_pkl_file
+
+from pathlib import Path
+from sklearn.metrics import silhouette_score
+
+from src.data_management import (
+    load_heart_failure_data,
+    load_pkl_file
+)
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def cluster_distribution_per_variable(df, target):
+
+    df_bar_plot = (
+        df.groupby(["Clusters", target])
+        .size()
+        .reset_index(name="Count")
+    )
+
+    df_bar_plot[target] = df_bar_plot[target].astype(str)
+
+    st.subheader(f"Distribution of {target} Across Clusters")
+
+    fig = px.bar(
+        df_bar_plot,
+        x="Clusters",
+        y="Count",
+        color=target,
+        barmode="group",
+        labels={"Count": "Number of Patients"}
+    )
+
+    fig.update_xaxes(type="category")
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # Relative distribution within each cluster
+    df_relative = (
+        df.groupby(["Clusters", target])
+        .size()
+        .unstack(fill_value=0)
+        .pipe(lambda counts: counts.div(counts.sum(axis=1), axis=0) * 100)
+        .stack()
+        .reset_index(name="Relative Percentage (%)")
+    )
+
+    df_relative[target] = df_relative[target].astype(str)
+
+    st.subheader(f"Percentage of {target} Within Each Cluster")
+
+    fig = px.bar(
+        df_relative,
+        x="Clusters",
+        y="Relative Percentage (%)",
+        color=target,
+        barmode="group",
+        labels={"Relative Percentage (%)": "Percentage (%)"}
+    )
+
+    fig.update_xaxes(type="category")
+
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def page_cluster_body():
 
-    # load cluster analysis files and pipeline
-    version = 'v1'
-    cluster_pipe = load_pkl_file(
-        f"outputs/ml_pipeline/cluster_analysis/{version}/cluster_pipeline.pkl")
-    cluster_silhouette = plt.imread(
-        f"outputs/ml_pipeline/cluster_analysis/{version}/clusters_silhouette.png")
-    features_to_cluster = plt.imread(
-        f"outputs/ml_pipeline/cluster_analysis/{version}/features_define_cluster.png")
-    cluster_profile = pd.read_csv(
-        f"outputs/ml_pipeline/cluster_analysis/{version}/clusters_profile.csv")
-    cluster_features = (pd.read_csv(f"outputs/ml_pipeline/cluster_analysis/{version}/TrainSet.csv")
-                        .columns
-                        .to_list()
-                        )
+    version = "v1"
 
-    # dataframe for cluster_distribution_per_variable()
-    df_churn_vs_clusters = load_telco_data().filter(['Churn'], axis=1)
-    df_churn_vs_clusters['Clusters'] = cluster_pipe['model'].labels_
-
-    st.write("### ML Pipeline: Cluster Analysis")
-    # display pipeline training summary conclusions
-    st.info(
-        f"* We refitted the cluster pipeline using fewer variables, and it delivered equivalent "
-        f"performance to the pipeline fitted using all variables.\n"
-        f"* The pipeline average silhouette score is 0.68"
+    model_dir = (
+        PROJECT_ROOT
+        / "outputs"
+        / "ml_pipeline"
+        / "cluster_analysis"
+        / version
     )
-    st.write("---")
 
-    st.write("#### Cluster ML Pipeline steps")
+    st.title("ML Pipeline: Heart Failure Cluster Analysis")
+
+    # ---------------------------------
+    # Load saved clustering pipeline
+    # ---------------------------------
+    cluster_pipe = load_pkl_file(
+        model_dir / "cluster_pipeline.pkl"
+    )
+
+    # ---------------------------------
+    # Load original dataset
+    # ---------------------------------
+    df = load_heart_failure_data().copy()
+
+    # ---------------------------------
+    # Load cluster features
+    # ---------------------------------
+    
+    # ---------------------------------
+    # Load features used during training
+    # ---------------------------------
+    if hasattr(cluster_pipe, "feature_names_in_"):
+        cluster_features = list(cluster_pipe.feature_names_in_)
+    else:
+        st.error(
+            "The clustering pipeline does not contain feature_names_in_. "
+            "Check the features used during model training."
+        )
+        return
+
+    missing_features = [
+        col for col in cluster_features
+        if col not in df.columns
+    ]
+
+    if missing_features:
+        st.error(
+            f"Features missing from original dataset: {missing_features}"
+        )
+        return
+
+    X_cluster = df.loc[:, cluster_features].copy()
+
+    # ---------------------------------
+    # Predict cluster labels
+    # ---------------------------------
+    cluster_labels = cluster_pipe.predict(X_cluster)
+
+    df_cluster = df[["DEATH_EVENT"]].copy()
+
+    df_cluster["Clusters"] = cluster_labels
+
+    # ---------------------------------
+    # Show pipeline
+    # ---------------------------------
+    st.subheader("Clustering Pipeline")
     st.write(cluster_pipe)
 
-    st.write("#### The features the model was trained with")
+    st.subheader("Features Used for Clustering")
     st.write(cluster_features)
 
-    st.write("#### Clusters Silhouette Plot")
-    st.image(cluster_silhouette)
+    # ---------------------------------
+    # Silhouette score
+    # ---------------------------------
+    st.divider()
+    st.subheader("Cluster Evaluation")
 
-    cluster_distribution_per_variable(df=df_churn_vs_clusters, target='Churn')
+    if len(set(cluster_labels)) > 1:
 
-    st.write("#### Most important features to define a cluster")
-    st.image(features_to_cluster)
+        # Evaluate in the same transformed space
+        # used by the K-Means estimator.
+        X_transformed = cluster_pipe[:-1].transform(
+            X_cluster
+        )
 
-    # text based on "07 - Modeling and Evaluation - Cluster Sklearn" notebook conclusions
-    st.write("#### Cluster Profile")
-    statement = (
-        f"* Historically, **users in Clusters 0 do not tend to Churn**, "
-        f"whereas in **Cluster 1 a third of users churned**, "
-        f"and in **Cluster 2 a quarter of users churned**. \n"
-        f"* From the Predict Churn study, we noticed that the ContractType and InternetService "
-        f"are the predictor variables to determine, if a person will churn or not.\n"
-        f"* **One potential action** when you detect that a given prospect is expected to churn and "
-        f"will belong to cluster 1 or 2 is to mainly avoid month to month contract type, "
-        f"like we learned in the churned customer study. \n"
-        f"* The salesperson would have then to consider the current product and services "
-        f"plan availability and encourage the prospect to move to another contract."
+        score = silhouette_score(
+            X_transformed,
+            cluster_labels
+        )
+
+        st.metric(
+            "Average Silhouette Score",
+            f"{score:.3f}"
+        )
+
+    # ---------------------------------
+    # Silhouette plot
+    # ---------------------------------
+    silhouette_path = (
+        model_dir / "clusters_silhouette.png"
     )
-    st.info(statement)
 
-    # text based on "07 - Modeling and Evaluation - Cluster Sklearn" notebook conclusions
-    statement = (
-        f"* The cluster profile interpretation allowed us to label the cluster in the following fashion:\n"
-        f"* Cluster 0 has users without internet, who are low spenders with a phone.\n"
-        f"* Cluster 1 has users with Internet, who are high spenders with a phone.\n"
-        f"* Cluster 2 has users with Internet, who are mid spenders without a phone."
+    if silhouette_path.is_file():
+        st.image(
+            str(silhouette_path),
+            caption="Cluster Silhouette Analysis",
+            use_container_width=True
+        )
+
+    # ---------------------------------
+    # Cluster distribution
+    # ---------------------------------
+    st.divider()
+
+    cluster_distribution_per_variable(
+        df=df_cluster,
+        target="DEATH_EVENT"
     )
-    st.success(statement)
 
-    # hack to not display the index in st.table() or st.write()
-    cluster_profile.index = [" "] * len(cluster_profile)
-    st.table(cluster_profile)
+    # ---------------------------------
+    # Features defining clusters
+    # ---------------------------------
+    st.divider()
+    st.subheader("Features Defining the Clusters")
 
+    features_path = (
+        model_dir / "features_define_cluster.png"
+    )
 
-# code coped from "07 - Modeling and Evaluation - Cluster Sklearn" notebook - under "Cluster Analysis" section
-def cluster_distribution_per_variable(df, target):
+    if features_path.is_file():
+        st.image(
+            str(features_path),
+            use_container_width=True
+        )
 
-    df_bar_plot = df.groupby(["Clusters", target]).size().reset_index(name="Count")
-    df_bar_plot.columns = ['Clusters', target, 'Count']
-    df_bar_plot[target] = df_bar_plot[target].astype('object')
+    # ---------------------------------
+    # Cluster profile
+    # ---------------------------------
+    st.divider()
+    st.subheader("Cluster Profile")
 
-    st.write(f"#### Clusters distribution across {target} levels")
-    fig = px.bar(df_bar_plot, x='Clusters', y='Count',
-                 color=target, width=800, height=350)
-    fig.update_layout(xaxis=dict(tickmode='array',
-                      tickvals=df['Clusters'].unique()))
-    # we replaced fig.show() for a streamlit command to render the plot
-    st.plotly_chart(fig)
+    profile_path = model_dir / "clusters_profile.csv"
 
-    df_relative = (df
-                   .groupby(["Clusters", target])
-                   .size()
-                   .unstack(fill_value=0)
-                   .apply(lambda x:  100*x / x.sum(), axis=1)
-                   .stack()
-                   .reset_index(name='Relative Percentage (%)')
-                   .sort_values(by=['Clusters', target])
-                   )
-    df_relative.columns = ['Clusters', target, 'Relative Percentage (%)']
+    if profile_path.is_file():
 
-    st.write(f"#### Relative Percentage (%) of {target} in each cluster")
-    fig = px.line(df_relative, x='Clusters', y='Relative Percentage (%)',
-                  color=target, width=800, height=350)
-    fig.update_layout(xaxis=dict(tickmode='array',
-                      tickvals=df['Clusters'].unique()))
-    fig.update_traces(mode='markers+lines')
-    # we replaced fig.show() for a streamlit command to render the plot
-    st.plotly_chart(fig)
+        cluster_profile = pd.read_csv(profile_path)
+
+        st.dataframe(
+            cluster_profile,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    else:
+        st.warning(
+            "The saved cluster profile was not found."
+        )
+
+    # ---------------------------------
+    # Outcome summary by cluster
+    # ---------------------------------
+    st.subheader("Observed Death Event Rate by Cluster")
+
+    outcome_summary = (
+        df_cluster.groupby("Clusters")
+        .agg(
+            Patients=("DEATH_EVENT", "size"),
+            Death_Events=("DEATH_EVENT", "sum"),
+            Death_Event_Rate=("DEATH_EVENT", "mean")
+        )
+        .reset_index()
+    )
+
+    outcome_summary["Death_Event_Rate"] *= 100
+
+    st.dataframe(
+        outcome_summary,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.caption(
+        "Cluster membership is based on similarity in clinical "
+        "features. The observed death-event rates are descriptive "
+        "and do not establish clinical risk categories."
+    )
+

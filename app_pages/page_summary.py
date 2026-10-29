@@ -2,40 +2,51 @@ import streamlit as st
 
 def page_summary_body():
 
-    st.write("### Quick Project Summary")
-
-    # text based on README file - "Dataset Content" section
-    st.info(
-        f"**Project Terms & Jargon**\n"
-        f"* A **customer** is a person who consumes your service or product.\n"
-        f"* A **prospect** is a potential customer.\n"
-        f"* A **churned** customer is a user who has stopped using your product or service.\n "
-        f"* This customer has a **tenure** level, the number of months this person " 
-        f"has used our product/service.\n\n"
-        f"**Project Dataset**\n"
-        f"* The dataset represents a **customer base from a Telco company** "
-        f"containing individual customer data on the products and services "
-        f"(like internet type, online security, online backup, tech support), "
-        f"account information (like contract type, payment method, monthly charges) "
-        f"and profile (like gender, partner, dependents).")
-
-    # Link to README file, so the users can have access to full project documentation
-    st.write(
-        f"* For additional information, please visit and **read** the "
-        f"[Project README file](https://github.com/Code-Institute-Solutions/churnometer).")
     
 
-    # copied from README file - "Business Requirements" section
-    st.success(
-        f"The project has 2 business requirements:\n"
-        f"* 1 - The client is interested in understanding the patterns from the customer base "
-        f"so that the client can learn the most relevant variables that are correlated to a "
-        f"churned customer.\n"
-        f"* 2 - The client is interested in determining whether or not a given prospect will churn. "
-        f"If so, the client is interested to know when. In addition, the client is "
-        f"interested in learning from which cluster this prospect will belong in the customer base. "
-        f"Based on that, present potential factors that could maintain and/or bring  "
-        f"the prospect to a non-churnable cluster."
-        )
 
-        
+    st.write("### Quick Project Summary")
+
+# Dataset description
+    st.info(
+        """
+        **Project Dataset**
+
+        The dataset contains clinical records of **299 patients with heart failure**
+        collected at the Faisalabad Institute of Cardiology and Allied Hospital
+        in Pakistan between April and December 2015.
+
+        It includes demographic and clinical characteristics such as age, sex,
+        anaemia, diabetes, high blood pressure, ejection fraction, platelet count,
+        serum creatinine, and serum sodium.
+
+        The dataset also includes follow-up duration (`time`) and an outcome
+        variable (`DEATH_EVENT`) indicating whether a death was recorded
+        during the follow-up period.
+    """
+)
+
+# Project documentation
+    st.write(
+        "For additional information, please refer to the "
+        "[Project README file](https://github.com/)."
+)
+
+# Project objectives
+    st.success(
+        """
+        **Project Objectives**
+
+        This project aims to analyze clinical characteristics and outcomes
+        among patients with heart failure using machine learning.
+
+        It includes:
+
+        - **Supervised learning:** Predicting the recorded death-event outcome
+        using clinical characteristics.
+        - **Unsupervised learning:** Identifying patient subgroups using
+        K-Means clustering.
+        - **Model interpretation:** Investigating which clinical variables
+        contribute to predictions and cluster assignments.
+    """
+)

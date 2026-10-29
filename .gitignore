@@ -1,10 +1,28 @@
-core.Microsoft*
-core.mongo*
-core.python*
-env.py
+# Virtual environments
+venv/
+mpl_env/
+.venv/
+
+# Python cache
 __pycache__/
 *.py[cod]
-node_modules/
-.github/
-cloudinary_python.txt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local datasets
+Data_set.zip
+inputs/
+
+# Generated notebook outputs
+jupyter_notebooks/outputs/
+
+# Secrets
+.env
+.env.*
+env.py
 kaggle.json
+
+# IDE
+.vscode/
+.idea/

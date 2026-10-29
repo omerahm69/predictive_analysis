@@ -1,97 +1,132 @@
+
 import streamlit as st
+import pandas as pd
+import numpy as np
 
 
-def predict_churn(X_live, churn_features, churn_pipeline_dc_fe, churn_pipeline_model):
+def predict_Death_event(
+    X_live,
+    death_event_features,
+    death_event_pipeline_dc_fe,
+    death_event_pipeline_model
+):
+    # Validate required features
+    missing_features = [
+        col for col in death_event_features
+        if col not in X_live.columns
+    ]
 
-    # from live data, subset features related to this pipeline
-    X_live_churn = X_live.filter(churn_features)
+    if missing_features:
+        st.error(f"Missing features: {missing_features}")
+        return None
 
-    # apply data cleaning / feat engine pipeline to live data
-    X_live_churn_dc_fe = churn_pipeline_dc_fe.transform(X_live_churn)
+    # Select features in the expected order
+    X_live_death_event = X_live.loc[:, death_event_features].copy()
 
-    # predict
-    churn_prediction = churn_pipeline_model.predict(X_live_churn_dc_fe)
-    churn_prediction_proba = churn_pipeline_model.predict_proba(
-        X_live_churn_dc_fe)
-    # st.write(churn_prediction_proba)
+    # Apply fitted cleaning / feature engineering pipeline
+    X_processed = death_event_pipeline_dc_fe.transform(
+        X_live_death_event
+    )
 
-    # Create a logic to display the results
-    churn_prob = churn_prediction_proba[0, churn_prediction][0]*100
-    if churn_prediction == 1:
-        churn_result = 'will'
+    # Predict outcome
+    prediction = death_event_pipeline_model.predict(X_processed)
+    predicted_class = int(prediction[0])
+
+    # Get class probabilities
+    probabilities = death_event_pipeline_model.predict_proba(X_processed)
+
+    # Find probability of class 1 (DEATH_EVENT)
+    classes = death_event_pipeline_model.classes_
+
+    if 1 not in classes:
+        st.error("Model does not contain DEATH_EVENT class 1.")
+        return None
+
+    death_class_index = list(classes).index(1)
+    death_probability = float(probabilities[0, death_class_index])
+
+    # Display results
+    st.subheader("Death Event Prediction")
+
+    st.metric(
+        label="Model-estimated probability of DEATH_EVENT = 1",
+        value=f"{death_probability * 100:.1f}%"
+    )
+
+    if predicted_class == 1:
+        st.warning("Predicted class: Death Event")
     else:
-        churn_result = 'will not'
+        st.success("Predicted class: No Death Event")
 
-    statement = (
-        f'### There is {churn_prob.round(1)}% probability '
-        f'that this prospect **{churn_result} churn**.')
+    st.caption(
+        "This is a model-estimated probability for the recorded "
+        "DEATH_EVENT label, not a validated individual mortality risk "
+        "over a specified time period."
+    )
 
-    st.write(statement)
-
-    return churn_prediction
-
-
-def predict_tenure(X_live, tenure_features, tenure_pipeline, tenure_labels_map):
-
-    # from live data, subset features related to this pipeline
-    X_live_tenure = X_live.filter(tenure_features)
-
-    # predict
-    tenure_prediction = tenure_pipeline.predict(X_live_tenure)
-    tenure_prediction_proba = tenure_pipeline.predict_proba(X_live_tenure)
-    # st.write(tenure_prediction_proba)
-
-    # create a logic to display the results
-    proba = tenure_prediction_proba[0, tenure_prediction][0]*100
-    tenure_levels = tenure_labels_map[tenure_prediction[0]]
-
-    if tenure_prediction != 1:
-        statement = (
-            f"* In addition, there is a {proba.round(2)}% probability the prospect "
-            f"will stay **{tenure_levels} months**. "
-        )
-    else:
-        statement = (
-            f"* The model has predicted the prospect would stay **{tenure_levels} months**, "
-            f"however we acknowledge that the recall and precision levels for {tenure_levels} is not "
-            f"strong. The AI tends to identify potential churners, but for this prospect the AI is not "
-            f"confident enough on how long the prospect would stay."
-        )
-
-    st.write(statement)
+    return predicted_class
 
 
-def predict_cluster(X_live, cluster_features, cluster_pipeline, cluster_profile):
+def predict_cluster(
+    X_live,
+    cluster_features,
+    cluster_pipeline,
+    cluster_profile
+):
+    # Validate required features
+    missing_features = [
+        col for col in cluster_features
+        if col not in X_live.columns
+    ]
 
-    # from live data, subset features related to this pipeline
-    X_live_cluster = X_live.filter(cluster_features)
+    if missing_features:
+        st.error(f"Missing features: {missing_features}")
+        return None
 
-    # predict
+    # Select clustering features
+    X_live_cluster = X_live.loc[:, cluster_features].copy()
+
+    # Predict cluster using the fitted pipeline
     cluster_prediction = cluster_pipeline.predict(X_live_cluster)
 
-    statement = (
-        f"### The prospect is expected to belong to **cluster {cluster_prediction[0]}**")
-    st.write("---")
-    st.write(statement)
+    cluster_id = int(cluster_prediction[0])
 
-  	# text based on "07 - Modeling and Evaluation - Cluster Sklearn" notebook conclusions
-    statement = (
-        f"* Historically, **users in Clusters 0  don't tend to Churn** "
-        f"whereas in **Cluster 1 a third of users churned** "
-        f"and in **Cluster 2 a quarter of users churned**."
+    st.subheader("Patient Cluster Prediction")
+
+    st.info(
+        f"The patient is assigned to **Cluster {cluster_id}**."
     )
-    st.info(statement)
 
-  	# text based on "07 - Modeling and Evaluation - Cluster Sklearn" notebook conclusions
-    statement = (
-        f"* The cluster profile interpretation allowed us to label the cluster in the following fashion:\n"
-        f"* Cluster 0 has user without internet, who is a low spender with phone\n"
-        f"* Cluster 1 has user with Internet, who is a high spender with phone\n"
-        f"* Cluster 2 has user with Internet , who is a mid spender without phone"
+    # Display the profile of the assigned cluster
+    if cluster_profile is not None:
+
+        profile = cluster_profile.copy()
+
+        # Supports a DataFrame indexed by cluster ID
+        # or one containing a "Clusters" column
+        if "Clusters" in profile.columns:
+            selected_profile = profile[
+                profile["Clusters"] == cluster_id
+            ]
+        else:
+            selected_profile = profile.loc[
+                profile.index.astype(str) == str(cluster_id)
+            ]
+
+        if not selected_profile.empty:
+            st.write("#### Cluster Profile")
+            st.dataframe(
+                selected_profile,
+                use_container_width=True
+            )
+        else:
+            st.warning(
+                "No profile is available for the assigned cluster."
+            )
+
+    st.caption(
+        "Cluster membership represents similarity in the selected "
+        "clinical features. It is not itself a mortality prediction."
     )
-    st.success(statement)
 
-    # hack to not display index in st.table() or st.write()
-    cluster_profile.index = [" "] * len(cluster_profile)
-    # display cluster profile in a table - it is better than in st.write()
-    st.table(cluster_profile)
+    return cluster_id
